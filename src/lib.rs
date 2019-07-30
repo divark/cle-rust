@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
+
 use multimap::MultiMap;
 
 pub enum Term {
@@ -110,6 +112,10 @@ impl Courses {
 		None
 	}
 
+    pub fn get_concurrents(&self, course: String) -> Vec<String> {
+
+    }
+
 	pub fn get_term_courses(&self, term: &Term) -> Vec<String> {
 		self.master_list.iter()
 			.filter(|&x| x.1.is_available(term))
@@ -117,6 +123,10 @@ impl Courses {
 			.map(|x| x.1.name.clone())
 			.collect()
 	}
+
+    pub fn len(&self) -> usize {
+        self.master_list.len()
+    }
 }
 
 #[cfg(test)]
