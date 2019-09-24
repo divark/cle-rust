@@ -3,6 +3,7 @@ use std::collections::HashSet;
 
 use multimap::MultiMap;
 
+#[derive(Clone)]
 pub enum Term {
 	Fall,
 	Winter,
@@ -26,22 +27,18 @@ impl Course {
     }
 
     pub fn available_by<'a>(&'a mut self, term: &Term) -> &'a mut Course {
-        match &term {
-            Term::Fall => self.availability[0] = true,
-            Term::Winter => self.availability[1] = true,
-            Term::Spring => self.availability[2] = true,
-            Term::Summer => self.availability[3] = true,
-        }
+        let index: usize = term.clone() as usize;
+
+        self.availability[index] = true;
+
         self
     }
 
     pub fn not_available_by<'a>(&'a mut self, term: &Term) -> &'a mut Course {
-        match &term {
-            Term::Fall => self.availability[0] = false,
-            Term::Winter => self.availability[1] = false,
-            Term::Spring => self.availability[2] = false,
-            Term::Summer => self.availability[3] = false,
-        }
+        let index: usize = term.clone() as usize;
+
+        self.availability[index] = false;
+
         self
     }
 
@@ -52,12 +49,9 @@ impl Course {
     		return is_all_available;
     	}
 
-    	match &term {
-            Term::Fall => self.availability[0],
-            Term::Winter => self.availability[1],
-            Term::Spring => self.availability[2],
-            Term::Summer => self.availability[3],
-        }
+        let index: usize = term.clone() as usize;
+
+    	self.availability[index]
     }
 }
 
