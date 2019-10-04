@@ -5,24 +5,24 @@ use multimap::MultiMap;
 
 #[derive(Clone)]
 pub enum Term {
-	Fall,
-	Winter,
-	Spring,
-	Summer,
+    Fall,
+    Winter,
+    Spring,
+    Summer,
 }
 
 pub struct Course {
-	pub name: String,
-	pub credits: u8,
-	pub availability: [bool; 4]
+    pub name: String,
+    pub credits: u8,
+    pub availability: [bool; 4],
 }
 
 impl Course {
-	pub fn new(name: String, credits: u8) -> Course {
-	    Course {
+    pub fn new(name: String, credits: u8) -> Course {
+        Course {
             name: name,
             credits: credits,
-	        availability: [false; 4]
+            availability: [false; 4],
         }
     }
 
@@ -43,61 +43,69 @@ impl Course {
     }
 
     pub fn is_available(&self, term: &Term) -> bool {
-    	let is_all_available = self.availability.iter().all(|&x| x) || self.availability.iter().all(|&x| !x);
+        let is_all_available =
+            self.availability.iter().all(|&x| x) || self.availability.iter().all(|&x| !x);
 
-    	if is_all_available {
-    		return is_all_available;
-    	}
+        if is_all_available {
+            return is_all_available;
+        }
 
         let index: usize = term.clone() as usize;
 
-    	self.availability[index]
+        self.availability[index]
     }
 }
 
 pub struct Courses {
-	pub master_list: HashMap<String, Course>,
-	pub prerequisites: MultiMap<String, String>,
-	pub concurrencies: MultiMap<String, String>
+    pub master_list: HashMap<String, Course>,
+    pub prerequisites: MultiMap<String, String>,
+    pub concurrencies: MultiMap<String, String>,
 }
 
 impl Courses {
-	pub fn new() -> Courses {
-		Courses {
-			master_list: HashMap::new(),
-			prerequisites: MultiMap::new(),
-			concurrencies: MultiMap::new(),
-		}
-	}
+    pub fn new() -> Courses {
+        Courses {
+            master_list: HashMap::new(),
+            prerequisites: MultiMap::new(),
+            concurrencies: MultiMap::new(),
+        }
+    }
 
-	pub fn add_course(&mut self, course: Course) {
-		self.master_list.insert(course.name.clone(), course);
-	}
+    pub fn add_course(&mut self, course: Course) {
+        self.master_list.insert(course.name.clone(), course);
+    }
 
-	pub fn remove_course(&mut self, course_name: String) -> Option<Course> {
-		self.master_list.remove(&course_name)
-	}
+    pub fn remove_course(&mut self, course_name: String) -> Option<Course> {
+        self.master_list.remove(&course_name)
+    }
 
-	pub fn add_prerequisite(&mut self, course: String, depends_on: String) {
-		self.prerequisites.insert(course.clone(), depends_on.clone());
-	}
+    pub fn add_prerequisite(&mut self, course: String, depends_on: String) {
+        self.prerequisites
+            .insert(course.clone(), depends_on.clone());
+    }
 
-	pub fn remove_prerequisite(&mut self, course: String, depends_on: String) -> Option<String> {
-		if let Some(c) = self.prerequisites.get_vec_mut(&course) {
-			if let Some(index) = c.iter().position(|x| *x == depends_on) {
-				return Some(c.remove(index));
-			}
-		}
+    pub fn remove_prerequisite(&mut self, course: String, depends_on: String) -> Option<String> {
+        if let Some(c) = self.prerequisites.get_vec_mut(&course) {
+            if let Some(index) = c.iter().position(|x| *x == depends_on) {
+                return Some(c.remove(index));
+            }
+        }
 
-		None
-	}
+        None
+    }
 
-	pub fn add_concurrency(&mut self, course: &String, depends_on: &String) {
-		self.concurrencies.insert(course.clone(), depends_on.clone());
-        self.concurrencies.insert(depends_on.clone(), course.clone());
-	}
+    pub fn add_concurrency(&mut self, course: &String, depends_on: &String) {
+        self.concurrencies
+            .insert(course.clone(), depends_on.clone());
+        self.concurrencies
+            .insert(depends_on.clone(), course.clone());
+    }
 
-    fn get_concurrents_with_memory(&self, course: &String, concurrents: &mut HashSet<String>) -> HashSet<String> {
+    fn get_concurrents_with_memory(
+        &self,
+        course: &String,
+        concurrents: &mut HashSet<String>,
+    ) -> HashSet<String> {
         concurrents.insert(course.to_string());
 
         if let Some(found_concurs) = self.concurrencies.get_vec(&course.to_string()) {
@@ -108,7 +116,10 @@ impl Courses {
                     continue;
                 }
 
-                found_set = found_set.union(&self.get_concurrents_with_memory(concur, concurrents)).cloned().collect();
+                found_set = found_set
+                    .union(&self.get_concurrents_with_memory(concur, concurrents))
+                    .cloned()
+                    .collect();
             }
 
             return found_set;
@@ -129,31 +140,39 @@ impl Courses {
         None
     }
 
-	pub fn remove_concurrency(&mut self, course: &String, depends_on: &String) -> bool {
-        if !self.concurrencies.contains_key(course) || !self.concurrencies.contains_key(depends_on) {
+    pub fn remove_concurrency(&mut self, course: &String, depends_on: &String) -> bool {
+        if !self.concurrencies.contains_key(course) || !self.concurrencies.contains_key(depends_on)
+        {
             return false;
         }
 
         let course_concurrents = self.concurrencies.get_vec_mut(course).unwrap();
-        let dependent_index = course_concurrents.iter().position(|x| x == depends_on).unwrap();
+        let dependent_index = course_concurrents
+            .iter()
+            .position(|x| x == depends_on)
+            .unwrap();
 
         course_concurrents.remove(dependent_index);
 
         let dependent_concurrents = self.concurrencies.get_vec_mut(depends_on).unwrap();
-        let course_index = dependent_concurrents.iter().position(|x| x == course).unwrap();
+        let course_index = dependent_concurrents
+            .iter()
+            .position(|x| x == course)
+            .unwrap();
 
         dependent_concurrents.remove(course_index);
 
         true
-	}
+    }
 
-	pub fn get_term_courses(&self, term: &Term) -> Vec<String> {
-		self.master_list.iter()
-			.filter(|&x| x.1.is_available(term))
-			.filter(|&x| !self.prerequisites.contains_key(&x.1.name))
-			.map(|x| x.1.name.clone())
-			.collect()
-	}
+    pub fn get_term_courses(&self, term: &Term) -> Vec<String> {
+        self.master_list
+            .iter()
+            .filter(|&x| x.1.is_available(term))
+            .filter(|&x| !self.prerequisites.contains_key(&x.1.name))
+            .map(|x| x.1.name.clone())
+            .collect()
+    }
 
     pub fn len(&self) -> usize {
         self.master_list.len()
@@ -162,52 +181,56 @@ impl Courses {
 
 #[cfg(test)]
 mod tests {
-	use super::*;
+    use super::*;
 
-	#[test]
-	fn test_course_all_available() {
-		let course_name: String = String::from("Test");
-		let term = Term::Fall;
-		let mut my_course = Course::new(course_name, 4);
+    #[test]
+    fn test_course_all_available() {
+        let course_name: String = String::from("Test");
+        let term = Term::Fall;
+        let mut my_course = Course::new(course_name, 4);
 
-		assert!(my_course.is_available(&term));
+        assert!(my_course.is_available(&term));
 
-		my_course.available_by(&Term::Fall)
-    		.available_by(&Term::Winter)
-    		.available_by(&Term::Spring)
-    		.available_by(&Term::Summer);
+        my_course
+            .available_by(&Term::Fall)
+            .available_by(&Term::Winter)
+            .available_by(&Term::Spring)
+            .available_by(&Term::Summer);
 
-		assert!(my_course.is_available(&term));
-	}
+        assert!(my_course.is_available(&term));
+    }
 
-	#[test]
-	fn test_course_one_not_available() {
-		let course_name: String = String::from("Test");
-		let term = Term::Fall;
+    #[test]
+    fn test_course_one_not_available() {
+        let course_name: String = String::from("Test");
+        let term = Term::Fall;
 
-		let mut my_course = Course::new(course_name, 4);
-		my_course.available_by(&term);
+        let mut my_course = Course::new(course_name, 4);
+        my_course.available_by(&term);
 
-		assert!(!my_course.is_available(&Term::Winter));
-	}
+        assert!(!my_course.is_available(&Term::Winter));
+    }
 
-	#[test]
-	fn test_course_one_available() {
-		let course_name: String = String::from("Test");
-		let term = Term::Fall;
+    #[test]
+    fn test_course_one_available() {
+        let course_name: String = String::from("Test");
+        let term = Term::Fall;
 
-		let mut my_course = Course::new(course_name, 4);
-		my_course.available_by(&term);
+        let mut my_course = Course::new(course_name, 4);
+        my_course.available_by(&term);
 
-		assert!(my_course.is_available(&term));
-	}
+        assert!(my_course.is_available(&term));
+    }
 
-	#[test]
-	fn test_remove_nonexistant_concurrent() {
-		let mut courses: Courses = Courses::new();
+    #[test]
+    fn test_remove_nonexistant_concurrent() {
+        let mut courses: Courses = Courses::new();
 
-		assert_eq!(courses.remove_concurrency(&String::from("Test1"), &String::from("Test2")), false);
-	}
+        assert_eq!(
+            courses.remove_concurrency(&String::from("Test1"), &String::from("Test2")),
+            false
+        );
+    }
 
     #[test]
     fn test_get_concurrents_none() {
@@ -228,7 +251,13 @@ mod tests {
 
         let test1_concurrents = courses.get_concurrents_for(&first_course);
         assert_ne!(test1_concurrents, None);
-        assert_eq!(test1_concurrents, courses.get_concurrents_for(&second_course));
-        assert_eq!(test1_concurrents, courses.get_concurrents_for(&third_course));
+        assert_eq!(
+            test1_concurrents,
+            courses.get_concurrents_for(&second_course)
+        );
+        assert_eq!(
+            test1_concurrents,
+            courses.get_concurrents_for(&third_course)
+        );
     }
 }
