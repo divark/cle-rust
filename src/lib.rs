@@ -43,8 +43,7 @@ impl Course {
     }
 
     pub fn is_available(&self, term: &Term) -> bool {
-        let is_all_available =
-            self.availability.iter().all(|&x| x) || self.availability.iter().all(|&x| !x);
+        let is_all_available = self.availability.iter().all(|&x| !x);
 
         if is_all_available {
             return is_all_available;
@@ -140,10 +139,14 @@ impl Courses {
         None
     }
 
-    pub fn remove_concurrency(&mut self, course: &String, depends_on: &String) -> bool {
+    pub fn remove_concurrency(
+        &mut self,
+        course: &String,
+        depends_on: &String,
+    ) -> Option<(String, String)> {
         if !self.concurrencies.contains_key(course) || !self.concurrencies.contains_key(depends_on)
         {
-            return false;
+            return None;
         }
 
         let course_concurrents = self.concurrencies.get_vec_mut(course).unwrap();
@@ -162,7 +165,7 @@ impl Courses {
 
         dependent_concurrents.remove(course_index);
 
-        true
+        Some((course.clone(), depends_on.clone()))
     }
 
     pub fn get_term_courses(&self, term: &Term) -> Vec<String> {
@@ -228,7 +231,7 @@ mod tests {
 
         assert_eq!(
             courses.remove_concurrency(&String::from("Test1"), &String::from("Test2")),
-            false
+            None
         );
     }
 
