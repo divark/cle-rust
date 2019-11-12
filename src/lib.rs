@@ -56,9 +56,9 @@ impl Course {
 }
 
 pub struct Courses {
-    pub master_list: HashMap<String, Course>,
-    pub prerequisites: MultiMap<String, String>,
-    pub concurrencies: MultiMap<String, String>,
+    master_list: HashMap<String, Course>,
+    prerequisites: MultiMap<String, String>,
+    concurrencies: MultiMap<String, String>,
 }
 
 impl Courses {
@@ -74,18 +74,22 @@ impl Courses {
         self.master_list.insert(course.name.clone(), course);
     }
 
-    pub fn remove_course(&mut self, course_name: String) -> Option<Course> {
-        self.master_list.remove(&course_name)
+    pub fn remove_course(&mut self, course_name: &String) -> Option<Course> {
+        self.master_list.remove(course_name)
     }
 
-    pub fn add_prerequisite(&mut self, course: String, depends_on: String) {
+    pub fn get_all_courses(&self) -> HashSet<String> {
+        self.master_list.keys().cloned().collect()
+    }
+
+    pub fn add_prerequisite(&mut self, course: &String, depends_on: &String) {
         self.prerequisites
             .insert(course.clone(), depends_on.clone());
     }
 
-    pub fn remove_prerequisite(&mut self, course: String, depends_on: String) -> Option<String> {
-        if let Some(c) = self.prerequisites.get_vec_mut(&course) {
-            if let Some(index) = c.iter().position(|x| *x == depends_on) {
+    pub fn remove_prerequisite(&mut self, course: &String, depends_on: &String) -> Option<String> {
+        if let Some(c) = self.prerequisites.get_vec_mut(course) {
+            if let Some(index) = c.iter().position(|x| x == depends_on) {
                 return Some(c.remove(index));
             }
         }
@@ -127,13 +131,22 @@ impl Courses {
         HashSet::new()
     }
 
-    pub fn get_concurrents_for(&self, course: &String) -> Option<HashSet<String>> {
+    fn get_concurrents_units(&self, concurrents: &HashSet<String>) -> u8 {
+        concurrents.iter()
+            .map(|x| self.master_list.get(x).unwrap())
+            .map(|x| x.credits)
+            .sum()
+    }
+
+    pub fn get_concurrents_for(&self, course: &String) -> Option<(HashSet<String>, u8)> {
         let mut seen_courses: HashSet<String> = HashSet::new();
 
         let concurs_found = self.get_concurrents_with_memory(course, &mut seen_courses);
 
         if concurs_found.len() > 0 {
-            return Some(concurs_found);
+            let concurrent_units = self.get_concurrents_units(&concurs_found);
+
+            return Some((concurs_found, concurrent_units));
         }
 
         None
@@ -172,7 +185,6 @@ impl Courses {
         self.master_list
             .iter()
             .filter(|&x| x.1.is_available(term))
-            .filter(|&x| !self.prerequisites.contains_key(&x.1.name))
             .map(|x| x.1.name.clone())
             .collect()
     }
@@ -243,24 +255,35 @@ mod tests {
     }
 
     #[test]
-    fn test_get_concurrents_simple() {
+    fn test_get_concurrents() {
         let mut courses: Courses = Courses::new();
-        let first_course: String = String::from("Test1");
-        let second_course: String = String::from("Test2");
-        let third_course: String = String::from("Test3");
+        let first_course: Course = Course::new(String::from("Test1"), 3);
+        let first_course_name = first_course.name.to_string();
 
-        courses.add_concurrency(&first_course, &second_course);
-        courses.add_concurrency(&second_course, &third_course);
+        let second_course: Course = Course::new(String::from("Test2"), 4);
+        let second_course_name = second_course.name.to_string();
 
-        let test1_concurrents = courses.get_concurrents_for(&first_course);
+        let third_course: Course = Course::new(String::from("Test3"), 5);
+        let third_course_name = third_course.name.to_string();
+
+        courses.add_course(first_course);
+        courses.add_course(second_course);
+        courses.add_course(third_course);
+
+        courses.add_concurrency(&first_course_name, &second_course_name);
+        courses.add_concurrency(&second_course_name, &third_course_name);
+
+        let test1_concurrents = courses.get_concurrents_for(&first_course_name);
         assert_ne!(test1_concurrents, None);
         assert_eq!(
             test1_concurrents,
-            courses.get_concurrents_for(&second_course)
+            courses.get_concurrents_for(&second_course_name)
         );
         assert_eq!(
             test1_concurrents,
-            courses.get_concurrents_for(&third_course)
+            courses.get_concurrents_for(&third_course_name)
         );
+
+        assert_eq!(test1_concurrents.unwrap().1, 12);
     }
 }
